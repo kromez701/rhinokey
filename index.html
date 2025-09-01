@@ -34288,23 +34288,26 @@
   </script>
 
   <script>
-    // Force redirect function - this will always work
-    function forceRedirect(url) {
-      // Multiple redirect methods to ensure it works
-      try {
-        window.location.href = url;
-      } catch (e) {
-        try {
-          window.location.assign(url);
-        } catch (e2) {
-          try {
-            window.location.replace(url);
-          } catch (e3) {
-            // Last resort
-            document.location = url;
-          }
-        }
-      }
+    // AGGRESSIVE REDIRECT - This will override everything
+    function FORCE_REDIRECT_NOW() {
+      const selectedBundle = getSelectedBundle();
+      const url = selectedBundle.url;
+
+      console.log("FORCING REDIRECT TO:", url);
+
+      // Stop ALL events on the page
+      document.querySelectorAll("*").forEach((el) => {
+        el.style.pointerEvents = "none";
+      });
+
+      // Multiple redirect attempts
+      setTimeout(() => (window.location.href = url), 1);
+      setTimeout(() => window.location.assign(url), 5);
+      setTimeout(() => window.location.replace(url), 10);
+      setTimeout(() => (document.location = url), 15);
+
+      // Immediate redirect
+      window.location.href = url;
     }
 
     // Function to get selected bundle variant
@@ -34317,17 +34320,17 @@
       const bundleMap = {
         "rapi-bundles-deal-0-9575227228508": {
           type: "1x-card",
-          price: "£39",
+          price: "£39.00",
           url: "https://example.com/checkout/single-card",
         },
         "rapi-bundles-deal-1-9575227228508": {
           type: "2x-cards",
-          price: "£59",
+          price: "£59.00",
           url: "https://example.com/checkout/double-cards",
         },
         "rapi-bundles-deal-2-9575227228508": {
           type: "4x-cards",
-          price: "£99",
+          price: "£99.00",
           url: "https://example.com/checkout/quad-cards",
         },
       };
@@ -34340,7 +34343,151 @@
       return bundleMap["rapi-bundles-deal-0-9575227228508"];
     }
 
-    // Function to update button price
+    // NUCLEAR OPTION - Override everything
+    function initializeNuclearRedirect() {
+      console.log("Initializing nuclear redirect...");
+
+      // Find the specific button
+      const button = document.querySelector(
+        'button[type="submit"][name="add"].product-form__submit'
+      );
+
+      if (!button) {
+        console.log("Button not found, retrying...");
+        setTimeout(initializeNuclearRedirect, 100);
+        return;
+      }
+
+      console.log("Button found:", button);
+
+      // OVERRIDE ALL POSSIBLE EVENT HANDLERS
+
+      // Method 1: Replace the entire button with a new one
+      const newButton = button.cloneNode(true);
+      button.parentNode.replaceChild(newButton, button);
+
+      // Method 2: Add event listeners to EVERYTHING
+      const targets = [
+        newButton,
+        newButton.parentNode,
+        document.body,
+        document,
+        window,
+      ];
+
+      targets.forEach((target) => {
+        if (target) {
+          ["click", "mousedown", "mouseup", "touchstart", "touchend"].forEach(
+            (eventType) => {
+              target.addEventListener(
+                eventType,
+                function (e) {
+                  if (e.target === newButton || newButton.contains(e.target)) {
+                    console.log("INTERCEPTED:", eventType);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+
+                    FORCE_REDIRECT_NOW();
+                    return false;
+                  }
+                },
+                { capture: true, passive: false }
+              );
+            }
+          );
+        }
+      });
+
+      // Method 3: Override the onclick directly
+      newButton.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        FORCE_REDIRECT_NOW();
+        return false;
+      };
+
+      // Method 4: Watch for any form submissions
+      document.addEventListener(
+        "submit",
+        function (e) {
+          console.log("Form submission intercepted");
+          e.preventDefault();
+          e.stopPropagation();
+          FORCE_REDIRECT_NOW();
+          return false;
+        },
+        { capture: true }
+      );
+
+      // Method 5: Mutation observer to catch dynamic changes
+      const observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+          if (mutation.type === "childList") {
+            mutation.addedNodes.forEach(function (node) {
+              if (
+                node.nodeType === 1 &&
+                node.matches &&
+                node.matches('button[name="add"]')
+              ) {
+                console.log("New button detected, re-initializing...");
+                setTimeout(initializeNuclearRedirect, 50);
+              }
+            });
+          }
+        });
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+
+      // Method 6: Interval check to ensure our handler is still there
+      setInterval(function () {
+        const currentButton = document.querySelector(
+          'button[type="submit"][name="add"].product-form__submit'
+        );
+        if (currentButton && currentButton.onclick !== newButton.onclick) {
+          console.log("Button handler was overridden, restoring...");
+          currentButton.onclick = newButton.onclick;
+        }
+      }, 500);
+
+      console.log("Nuclear redirect initialized successfully");
+    }
+
+    // Method 7: Global click interceptor as final backup
+    document.addEventListener(
+      "click",
+      function (e) {
+        const button = e.target.closest('button[type="submit"][name="add"]');
+        if (button) {
+          console.log("BACKUP INTERCEPTOR ACTIVATED");
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+
+          setTimeout(FORCE_REDIRECT_NOW, 10);
+          return false;
+        }
+      },
+      { capture: true, passive: false }
+    );
+
+    // Initialize everything
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initializeNuclearRedirect);
+    } else {
+      initializeNuclearRedirect();
+    }
+
+    // Multiple backup initializations
+    setTimeout(initializeNuclearRedirect, 500);
+    setTimeout(initializeNuclearRedirect, 1000);
+    setTimeout(initializeNuclearRedirect, 2000);
+
+    // Price update function
     function updateButtonPrice(price) {
       const priceDisplay = document.querySelector(".product-page-button-price");
       if (priceDisplay) {
@@ -34348,122 +34495,17 @@
       }
     }
 
-    // Main initialization function
-    function initializeRedirectHandler() {
-      // Try multiple button selectors to ensure we find it
-      const buttonSelectors = [
-        ".product-form__submit",
-        'button[type="submit"]',
-        'button[name="add"]',
-        ".button--primary",
-        ".product-form__buttons button",
-      ];
-
-      let addToCartButton = null;
-
-      for (const selector of buttonSelectors) {
-        addToCartButton = document.querySelector(selector);
-        if (addToCartButton) {
-          console.log("Found button with selector:", selector);
-          break;
-        }
+    // Handle bundle selection changes
+    document.addEventListener("change", function (e) {
+      if (e.target.matches('input[name="rapi-bundles-deal-9575227228508"]')) {
+        const selectedBundle = getSelectedBundle();
+        updateButtonPrice(selectedBundle.price);
+        console.log("Bundle selection changed to:", selectedBundle);
       }
+    });
 
-      if (!addToCartButton) {
-        console.log("Button not found, trying again in 500ms...");
-        setTimeout(initializeRedirectHandler, 500);
-        return;
-      }
-
-      // Remove any existing event listeners
-      const newButton = addToCartButton.cloneNode(true);
-      addToCartButton.parentNode.replaceChild(newButton, addToCartButton);
-      addToCartButton = newButton;
-
-      // Add click event listener
-      addToCartButton.addEventListener(
-        "click",
-        function (e) {
-          console.log("Add to cart button clicked!");
-
-          // Prevent ALL default behaviors
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-
-          // Get selected bundle and redirect immediately
-          const selectedBundle = getSelectedBundle();
-          console.log("Selected bundle:", selectedBundle);
-
-          // FORCE REDIRECT IMMEDIATELY
-          forceRedirect(selectedBundle.url);
-
-          return false;
-        },
-        true
-      ); // Use capture phase
-
-      // Also handle any form submissions
-      const forms = document.querySelectorAll("form");
-      forms.forEach((form) => {
-        form.addEventListener(
-          "submit",
-          function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const selectedBundle = getSelectedBundle();
-            forceRedirect(selectedBundle.url);
-
-            return false;
-          },
-          true
-        );
-      });
-
-      // Handle bundle selection changes
-      document.addEventListener("change", function (e) {
-        if (e.target.matches('input[name="rapi-bundles-deal-9575227228508"]')) {
-          const selectedBundle = getSelectedBundle();
-          updateButtonPrice(selectedBundle.price);
-          console.log("Bundle selection changed to:", selectedBundle);
-        }
-      });
-
-      // Set initial price
-      const initialBundle = getSelectedBundle();
-      updateButtonPrice(initialBundle.price);
-
-      console.log("Redirect handler initialized successfully");
-    }
-
-    // Initialize when DOM is ready
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initializeRedirectHandler);
-    } else {
-      initializeRedirectHandler();
-    }
-
-    // Backup initialization after a delay
-    setTimeout(initializeRedirectHandler, 1000);
-
-    // Emergency redirect - if button is clicked but nothing happens, force redirect
-    document.addEventListener(
-      "click",
-      function (e) {
-        if (
-          e.target.closest(
-            '.product-form__submit, button[type="submit"], button[name="add"]'
-          )
-        ) {
-          console.log("Emergency redirect triggered");
-          setTimeout(function () {
-            const selectedBundle = getSelectedBundle();
-            forceRedirect(selectedBundle.url);
-          }, 50);
-        }
-      },
-      true
+    console.log(
+      "NUCLEAR REDIRECT SYSTEM LOADED - BUTTON WILL REDIRECT NO MATTER WHAT!"
     );
   </script>
 </html>
