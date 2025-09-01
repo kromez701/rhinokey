@@ -34288,25 +34288,57 @@
   </script>
 
   <script>
-    // AGGRESSIVE REDIRECT - This will override everything
-    function FORCE_REDIRECT_NOW() {
+    // BLOCK ALL MODALS AND FORCE REDIRECT
+    function BLOCK_MODAL_AND_REDIRECT() {
       const selectedBundle = getSelectedBundle();
       const url = selectedBundle.url;
 
-      console.log("FORCING REDIRECT TO:", url);
+      console.log("BLOCKING MODAL AND FORCING REDIRECT TO:", url);
 
-      // Stop ALL events on the page
-      document.querySelectorAll("*").forEach((el) => {
-        el.style.pointerEvents = "none";
+      // IMMEDIATELY block all modals
+      const modalSelectors = [
+        ".modal",
+        ".popup",
+        ".overlay",
+        ".lightbox",
+        ".dialog",
+        '[class*="modal"]',
+        '[class*="popup"]',
+        '[class*="overlay"]',
+        '[id*="modal"]',
+        '[id*="popup"]',
+        '[id*="overlay"]',
+        ".cart-drawer",
+        ".mini-cart",
+        ".side-cart",
+        ".cart-popup",
+      ];
+
+      modalSelectors.forEach((selector) => {
+        document.querySelectorAll(selector).forEach((modal) => {
+          modal.style.display = "none !important";
+          modal.style.visibility = "hidden !important";
+          modal.style.opacity = "0 !important";
+          modal.style.pointerEvents = "none !important";
+          modal.remove();
+        });
       });
 
-      // Multiple redirect attempts
-      setTimeout(() => (window.location.href = url), 1);
-      setTimeout(() => window.location.assign(url), 5);
-      setTimeout(() => window.location.replace(url), 10);
-      setTimeout(() => (document.location = url), 15);
+      // Block common modal/popup JavaScript functions
+      window.showModal = () => {};
+      window.openModal = () => {};
+      window.openPopup = () => {};
+      window.showPopup = () => {};
 
-      // Immediate redirect
+      // Stop all animations and transitions
+      document.querySelectorAll("*").forEach((el) => {
+        el.style.transition = "none !important";
+        el.style.animation = "none !important";
+      });
+
+      // Force redirect with multiple methods
+      setTimeout(() => (window.location.href = url), 1);
+      setTimeout(() => window.location.assign(url), 10);
       window.location.href = url;
     }
 
@@ -34316,7 +34348,6 @@
         'input[name="rapi-bundles-deal-9575227228508"]:checked'
       );
 
-      // Map bundle IDs to their details and redirect URLs
       const bundleMap = {
         "rapi-bundles-deal-0-9575227228508": {
           type: "1x-card",
@@ -34339,173 +34370,216 @@
         return bundleMap[selectedBundle.id];
       }
 
-      // Default to first option
       return bundleMap["rapi-bundles-deal-0-9575227228508"];
     }
 
-    // NUCLEAR OPTION - Override everything
-    function initializeNuclearRedirect() {
-      console.log("Initializing nuclear redirect...");
+    // ULTIMATE MODAL BLOCKING SYSTEM
+    function initializeUltimateBlocker() {
+      console.log("Initializing ultimate modal blocker and redirect system...");
 
-      // Find the specific button
+      // Override common modal/popup methods BEFORE they can be used
+      const originalAlert = window.alert;
+      const originalConfirm = window.confirm;
+      const originalPrompt = window.prompt;
+
+      // Block these methods from being called
+      window.alert = () => {
+        BLOCK_MODAL_AND_REDIRECT();
+        return false;
+      };
+      window.confirm = () => {
+        BLOCK_MODAL_AND_REDIRECT();
+        return true;
+      };
+      window.prompt = () => {
+        BLOCK_MODAL_AND_REDIRECT();
+        return "";
+      };
+
+      // Override addEventListener to block modal-related events
+      const originalAddEventListener = EventTarget.prototype.addEventListener;
+      EventTarget.prototype.addEventListener = function (
+        type,
+        listener,
+        options
+      ) {
+        // Block events that might trigger modals
+        const blockedEvents = [
+          "cart:added",
+          "product:added",
+          "modal:open",
+          "popup:open",
+          "drawer:open",
+        ];
+        if (blockedEvents.includes(type)) {
+          console.log("Blocked event listener for:", type);
+          return;
+        }
+        return originalAddEventListener.call(this, type, listener, options);
+      };
+
+      // Find and override the button
       const button = document.querySelector(
         'button[type="submit"][name="add"].product-form__submit'
       );
 
       if (!button) {
-        console.log("Button not found, retrying...");
-        setTimeout(initializeNuclearRedirect, 100);
+        setTimeout(initializeUltimateBlocker, 100);
         return;
       }
 
-      console.log("Button found:", button);
+      console.log("Button found, applying ultimate override...");
 
-      // OVERRIDE ALL POSSIBLE EVENT HANDLERS
+      // COMPLETELY REPLACE THE BUTTON
+      const newButton = document.createElement("button");
+      newButton.type = "button"; // Change from submit to button
+      newButton.className = button.className;
+      newButton.innerHTML = button.innerHTML;
 
-      // Method 1: Replace the entire button with a new one
-      const newButton = button.cloneNode(true);
+      // Replace the original button
       button.parentNode.replaceChild(newButton, button);
 
-      // Method 2: Add event listeners to EVERYTHING
-      const targets = [
-        newButton,
-        newButton.parentNode,
-        document.body,
-        document,
-        window,
-      ];
-
-      targets.forEach((target) => {
-        if (target) {
-          ["click", "mousedown", "mouseup", "touchstart", "touchend"].forEach(
-            (eventType) => {
-              target.addEventListener(
-                eventType,
-                function (e) {
-                  if (e.target === newButton || newButton.contains(e.target)) {
-                    console.log("INTERCEPTED:", eventType);
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
-
-                    FORCE_REDIRECT_NOW();
-                    return false;
-                  }
-                },
-                { capture: true, passive: false }
-              );
-            }
-          );
-        }
-      });
-
-      // Method 3: Override the onclick directly
-      newButton.onclick = function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        FORCE_REDIRECT_NOW();
-        return false;
-      };
-
-      // Method 4: Watch for any form submissions
-      document.addEventListener(
-        "submit",
+      // Add our redirect handler
+      newButton.addEventListener(
+        "click",
         function (e) {
-          console.log("Form submission intercepted");
-          e.preventDefault();
-          e.stopPropagation();
-          FORCE_REDIRECT_NOW();
-          return false;
-        },
-        { capture: true }
-      );
-
-      // Method 5: Mutation observer to catch dynamic changes
-      const observer = new MutationObserver(function (mutations) {
-        mutations.forEach(function (mutation) {
-          if (mutation.type === "childList") {
-            mutation.addedNodes.forEach(function (node) {
-              if (
-                node.nodeType === 1 &&
-                node.matches &&
-                node.matches('button[name="add"]')
-              ) {
-                console.log("New button detected, re-initializing...");
-                setTimeout(initializeNuclearRedirect, 50);
-              }
-            });
-          }
-        });
-      });
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-      });
-
-      // Method 6: Interval check to ensure our handler is still there
-      setInterval(function () {
-        const currentButton = document.querySelector(
-          'button[type="submit"][name="add"].product-form__submit'
-        );
-        if (currentButton && currentButton.onclick !== newButton.onclick) {
-          console.log("Button handler was overridden, restoring...");
-          currentButton.onclick = newButton.onclick;
-        }
-      }, 500);
-
-      console.log("Nuclear redirect initialized successfully");
-    }
-
-    // Method 7: Global click interceptor as final backup
-    document.addEventListener(
-      "click",
-      function (e) {
-        const button = e.target.closest('button[type="submit"][name="add"]');
-        if (button) {
-          console.log("BACKUP INTERCEPTOR ACTIVATED");
+          console.log("ULTIMATE HANDLER TRIGGERED");
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
 
-          setTimeout(FORCE_REDIRECT_NOW, 10);
+          BLOCK_MODAL_AND_REDIRECT();
+          return false;
+        },
+        { capture: true, passive: false }
+      );
+
+      // Also override any direct onclick assignments
+      Object.defineProperty(newButton, "onclick", {
+        set: function () {
+          console.log("Blocked onclick assignment");
+        },
+        get: function () {
+          return function () {
+            BLOCK_MODAL_AND_REDIRECT();
+          };
+        },
+      });
+
+      // Block form submissions entirely
+      const forms = document.querySelectorAll("form");
+      forms.forEach((form) => {
+        const newForm = form.cloneNode(true);
+        form.parentNode.replaceChild(newForm, form);
+
+        newForm.addEventListener(
+          "submit",
+          function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            BLOCK_MODAL_AND_REDIRECT();
+            return false;
+          },
+          { capture: true }
+        );
+
+        // Remove the submit handler entirely
+        newForm.onsubmit = null;
+      });
+
+      console.log("Ultimate modal blocker and redirect system activated!");
+    }
+
+    // GLOBAL EVENT BLOCKER - blocks everything that might trigger modals
+    document.addEventListener("DOMContentLoaded", function () {
+      // Block all AJAX requests that might add items to cart
+      const originalFetch = window.fetch;
+      const originalXHROpen = XMLHttpRequest.prototype.open;
+      const originalXHRSend = XMLHttpRequest.prototype.send;
+
+      // Override fetch to block cart-related requests
+      window.fetch = function (url, options) {
+        if (
+          url.includes("/cart/add") ||
+          url.includes("add-to-cart") ||
+          url.includes("/cart.js")
+        ) {
+          console.log("Blocked fetch request to:", url);
+          BLOCK_MODAL_AND_REDIRECT();
+          return Promise.resolve(new Response("{}"));
+        }
+        return originalFetch.apply(this, arguments);
+      };
+
+      // Override XMLHttpRequest
+      XMLHttpRequest.prototype.open = function (method, url) {
+        if (
+          url.includes("/cart/add") ||
+          url.includes("add-to-cart") ||
+          url.includes("/cart.js")
+        ) {
+          console.log("Blocked XHR request to:", url);
+          BLOCK_MODAL_AND_REDIRECT();
+          return;
+        }
+        return originalXHROpen.apply(this, arguments);
+      };
+    });
+
+    // ULTIMATE CLICK INTERCEPTOR - catches ANY click on the button area
+    document.addEventListener(
+      "click",
+      function (e) {
+        // Check if click is on or near the add to cart button
+        const isAddToCartClick =
+          e.target.closest('button[name="add"]') ||
+          e.target.closest(".product-form__submit") ||
+          e.target.closest(".pp-buy-button-container") ||
+          e.target.textContent.toLowerCase().includes("add to cart");
+
+        if (isAddToCartClick) {
+          console.log("ULTIMATE CLICK INTERCEPTOR ACTIVATED");
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+
+          // Block any modals immediately
+          setTimeout(BLOCK_MODAL_AND_REDIRECT, 1);
+          setTimeout(BLOCK_MODAL_AND_REDIRECT, 10);
+          setTimeout(BLOCK_MODAL_AND_REDIRECT, 50);
+
           return false;
         }
       },
       { capture: true, passive: false }
     );
 
-    // Initialize everything
+    // Initialize the system
     if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initializeNuclearRedirect);
+      document.addEventListener("DOMContentLoaded", initializeUltimateBlocker);
     } else {
-      initializeNuclearRedirect();
+      initializeUltimateBlocker();
     }
 
     // Multiple backup initializations
-    setTimeout(initializeNuclearRedirect, 500);
-    setTimeout(initializeNuclearRedirect, 1000);
-    setTimeout(initializeNuclearRedirect, 2000);
+    setTimeout(initializeUltimateBlocker, 100);
+    setTimeout(initializeUltimateBlocker, 500);
+    setTimeout(initializeUltimateBlocker, 1000);
 
-    // Price update function
-    function updateButtonPrice(price) {
-      const priceDisplay = document.querySelector(".product-page-button-price");
-      if (priceDisplay) {
-        priceDisplay.textContent = ` - ${price}`;
-      }
-    }
-
-    // Handle bundle selection changes
-    document.addEventListener("change", function (e) {
-      if (e.target.matches('input[name="rapi-bundles-deal-9575227228508"]')) {
-        const selectedBundle = getSelectedBundle();
-        updateButtonPrice(selectedBundle.price);
-        console.log("Bundle selection changed to:", selectedBundle);
-      }
-    });
+    // Continuously block modals
+    setInterval(function () {
+      // Remove any modals that might appear
+      document
+        .querySelectorAll(
+          '.modal, .popup, .overlay, [class*="modal"], [class*="popup"], .cart-drawer'
+        )
+        .forEach((modal) => {
+          modal.remove();
+        });
+    }, 100);
 
     console.log(
-      "NUCLEAR REDIRECT SYSTEM LOADED - BUTTON WILL REDIRECT NO MATTER WHAT!"
+      "ULTIMATE MODAL BLOCKER LOADED - NO MODALS WILL APPEAR, ONLY REDIRECTS!"
     );
   </script>
 </html>
