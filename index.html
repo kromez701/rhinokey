@@ -34257,60 +34257,59 @@
   </script>
 
   <script>
+    // Force redirect function - this will always work
+    function forceRedirect(url) {
+      // Multiple redirect methods to ensure it works
+      try {
+        window.location.href = url;
+      } catch (e) {
+        try {
+          window.location.assign(url);
+        } catch (e2) {
+          try {
+            window.location.replace(url);
+          } catch (e3) {
+            // Last resort
+            document.location = url;
+          }
+        }
+      }
+    }
+
     // Function to get selected bundle variant
     function getSelectedBundle() {
       const selectedBundle = document.querySelector(
         'input[name="rapi-bundles-deal-9575227228508"]:checked'
       );
 
-      if (!selectedBundle) {
-        // Default to first option if nothing selected
-        return {
-          id: "rapi-bundles-deal-0-9575227228508",
-          type: "1x-card",
-          price: "£39",
-        };
-      }
-
-      const bundleId = selectedBundle.id;
-
-      // Map bundle IDs to their details
+      // Map bundle IDs to their details and redirect URLs
       const bundleMap = {
         "rapi-bundles-deal-0-9575227228508": {
-          id: bundleId,
           type: "1x-card",
           price: "£39",
+          url: "https://example.com/checkout/single-card",
         },
         "rapi-bundles-deal-1-9575227228508": {
-          id: bundleId,
           type: "2x-cards",
           price: "£59",
+          url: "https://example.com/checkout/double-cards",
         },
         "rapi-bundles-deal-2-9575227228508": {
-          id: bundleId,
           type: "4x-cards",
           price: "£99",
+          url: "https://example.com/checkout/quad-cards",
         },
       };
 
-      return (
-        bundleMap[bundleId] || bundleMap["rapi-bundles-deal-0-9575227228508"]
-      );
+      if (selectedBundle && bundleMap[selectedBundle.id]) {
+        return bundleMap[selectedBundle.id];
+      }
+
+      // Default to first option
+      return bundleMap["rapi-bundles-deal-0-9575227228508"];
     }
 
-    // Function to get redirect URL based on selected bundle
-    function getRedirectUrl(bundle) {
-      // Define redirect URLs for each bundle variant
-      const redirectUrls = {
-        "1x-card": "https://example.com/checkout/single-card",
-        "2x-cards": "https://example.com/checkout/double-cards",
-        "4x-cards": "https://example.com/checkout/quad-cards",
-      };
-
-      return redirectUrls[bundle.type] || redirectUrls["1x-card"]; // Default to single card URL
-    }
-
-    // Function to update the button price display
+    // Function to update button price
     function updateButtonPrice(price) {
       const priceDisplay = document.querySelector(".product-page-button-price");
       if (priceDisplay) {
@@ -34318,89 +34317,122 @@
       }
     }
 
-    // Add event listener to the Add to Cart button
-    document.addEventListener("DOMContentLoaded", function () {
-      const addToCartButton = document.querySelector(".product-form__submit");
+    // Main initialization function
+    function initializeRedirectHandler() {
+      // Try multiple button selectors to ensure we find it
+      const buttonSelectors = [
+        ".product-form__submit",
+        'button[type="submit"]',
+        'button[name="add"]',
+        ".button--primary",
+        ".product-form__buttons button",
+      ];
 
-      if (addToCartButton) {
-        addToCartButton.addEventListener("click", function (e) {
-          e.preventDefault(); // Prevent default form submission
-          e.stopPropagation(); // Stop event bubbling
+      let addToCartButton = null;
 
-          // ALWAYS redirect - force redirect even if there are errors
-          try {
-            // Get selected bundle
-            const selectedBundle = getSelectedBundle();
+      for (const selector of buttonSelectors) {
+        addToCartButton = document.querySelector(selector);
+        if (addToCartButton) {
+          console.log("Found button with selector:", selector);
+          break;
+        }
+      }
 
-            // Get redirect URL
-            const redirectUrl = getRedirectUrl(selectedBundle);
+      if (!addToCartButton) {
+        console.log("Button not found, trying again in 500ms...");
+        setTimeout(initializeRedirectHandler, 500);
+        return;
+      }
 
-            // Optional: Add some analytics or tracking here
-            console.log("Redirecting with bundle:", selectedBundle);
-            console.log("Redirect URL:", redirectUrl);
+      // Remove any existing event listeners
+      const newButton = addToCartButton.cloneNode(true);
+      addToCartButton.parentNode.replaceChild(newButton, addToCartButton);
+      addToCartButton = newButton;
 
-            // Update button price before redirect (optional)
-            updateButtonPrice(selectedBundle.price);
+      // Add click event listener
+      addToCartButton.addEventListener(
+        "click",
+        function (e) {
+          console.log("Add to cart button clicked!");
 
-            // GUARANTEED REDIRECT - this will always execute
-            window.location.href = redirectUrl;
-          } catch (error) {
-            // Even if there's an error, still redirect to default
-            console.log("Error occurred, redirecting to default:", error);
-            window.location.href = "https://example.com/checkout/single-card";
-          }
+          // Prevent ALL default behaviors
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
 
-          // Additional safety - redirect after short delay if above doesn't work
-          setTimeout(function () {
-            if (window.location.href === window.location.href) {
-              window.location.href = "https://example.com/checkout/single-card";
-            }
-          }, 100);
+          // Get selected bundle and redirect immediately
+          const selectedBundle = getSelectedBundle();
+          console.log("Selected bundle:", selectedBundle);
 
-          // Return false to ensure no default action occurs
+          // FORCE REDIRECT IMMEDIATELY
+          forceRedirect(selectedBundle.url);
+
           return false;
-        });
+        },
+        true
+      ); // Use capture phase
 
-        // Also handle form submission to ensure redirect
-        const form = addToCartButton.closest("form");
-        if (form) {
-          form.addEventListener("submit", function (e) {
+      // Also handle any form submissions
+      const forms = document.querySelectorAll("form");
+      forms.forEach((form) => {
+        form.addEventListener(
+          "submit",
+          function (e) {
             e.preventDefault();
             e.stopPropagation();
 
-            // Trigger the same redirect logic
             const selectedBundle = getSelectedBundle();
-            const redirectUrl = getRedirectUrl(selectedBundle);
-            window.location.href = redirectUrl;
+            forceRedirect(selectedBundle.url);
 
             return false;
-          });
+          },
+          true
+        );
+      });
+
+      // Handle bundle selection changes
+      document.addEventListener("change", function (e) {
+        if (e.target.matches('input[name="rapi-bundles-deal-9575227228508"]')) {
+          const selectedBundle = getSelectedBundle();
+          updateButtonPrice(selectedBundle.price);
+          console.log("Bundle selection changed to:", selectedBundle);
         }
-      }
-    });
+      });
 
-    // Optional: Update button price when bundle selection changes
-    document.addEventListener("change", function (e) {
-      if (e.target.matches('input[name="rapi-bundles-deal-9575227228508"]')) {
-        const selectedBundle = getSelectedBundle();
-        updateButtonPrice(selectedBundle.price);
+      // Set initial price
+      const initialBundle = getSelectedBundle();
+      updateButtonPrice(initialBundle.price);
 
-        // Preview redirect URL in console
-        const redirectUrl = getRedirectUrl(selectedBundle);
-        console.log("Current selection would redirect to:", redirectUrl);
+      console.log("Redirect handler initialized successfully");
+    }
 
-        // Optional: Update a preview element if it exists
-        const urlPreview = document.getElementById("bundleUrlPreview");
-        if (urlPreview) {
-          urlPreview.textContent = `Will redirect to: ${redirectUrl}`;
+    // Initialize when DOM is ready
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initializeRedirectHandler);
+    } else {
+      initializeRedirectHandler();
+    }
+
+    // Backup initialization after a delay
+    setTimeout(initializeRedirectHandler, 1000);
+
+    // Emergency redirect - if button is clicked but nothing happens, force redirect
+    document.addEventListener(
+      "click",
+      function (e) {
+        if (
+          e.target.closest(
+            '.product-form__submit, button[type="submit"], button[name="add"]'
+          )
+        ) {
+          console.log("Emergency redirect triggered");
+          setTimeout(function () {
+            const selectedBundle = getSelectedBundle();
+            forceRedirect(selectedBundle.url);
+          }, 50);
         }
-      }
-    });
-
-    // Initialize button price on page load
-    document.addEventListener("DOMContentLoaded", function () {
-      const selectedBundle = getSelectedBundle();
-      updateButtonPrice(selectedBundle.price);
-    });
+      },
+      true
+    );
   </script>
 </html>
