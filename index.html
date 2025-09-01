@@ -34224,6 +34224,9 @@
     .icon.icon-hamburger.icon-lg {
       display: none !important;
     }
+    .sticky-buy-button.fixed {
+      display: none !important;
+    }
   </style>
 
   <script>
@@ -34251,5 +34254,115 @@
     });
 
     setInterval(replaceDollarInDOM, 300);
+  </script>
+
+  <script>
+    // Function to get selected bundle variant
+function getSelectedBundle() {
+    const selectedBundle = document.querySelector('input[name="rapi-bundles-deal-9575227228508"]:checked');
+    
+    if (!selectedBundle) {
+        // Default to first option if nothing selected
+        return {
+            id: 'rapi-bundles-deal-0-9575227228508',
+            type: '1x-card',
+            price: '£39'
+        };
+    }
+    
+    const bundleId = selectedBundle.id;
+    
+    // Map bundle IDs to their details
+    const bundleMap = {
+        'rapi-bundles-deal-0-9575227228508': {
+            id: bundleId,
+            type: '1x-card',
+            price: '£39'
+        },
+        'rapi-bundles-deal-1-9575227228508': {
+            id: bundleId,
+            type: '2x-cards',
+            price: '£59'
+        },
+        'rapi-bundles-deal-2-9575227228508': {
+            id: bundleId,
+            type: '4x-cards',
+            price: '£99'
+        }
+    };
+    
+    return bundleMap[bundleId] || bundleMap['rapi-bundles-deal-0-9575227228508'];
+}
+
+// Function to get redirect URL based on selected bundle
+function getRedirectUrl(bundle) {
+    // Define redirect URLs for each bundle variant
+    const redirectUrls = {
+        '1x-card': 'https://example.com/checkout/single-card',
+        '2x-cards': 'https://example.com/checkout/double-cards',
+        '4x-cards': 'https://example.com/checkout/quad-cards'
+    };
+    
+    return redirectUrls[bundle.type] || redirectUrls['1x-card']; // Default to single card URL
+}
+
+// Function to update the button price display
+function updateButtonPrice(price) {
+    const priceDisplay = document.querySelector('.product-page-button-price');
+    if (priceDisplay) {
+        priceDisplay.textContent = ` - ${price}`;
+    }
+}
+
+// Add event listener to the Add to Cart button
+document.addEventListener('DOMContentLoaded', function() {
+    const addToCartButton = document.querySelector('.product-form__submit');
+    
+    if (addToCartButton) {
+        addToCartButton.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent default form submission
+            
+            // Get selected bundle
+            const selectedBundle = getSelectedBundle();
+            
+            // Get redirect URL
+            const redirectUrl = getRedirectUrl(selectedBundle);
+            
+            // Optional: Add some analytics or tracking here
+            console.log('Redirecting with bundle:', selectedBundle);
+            console.log('Redirect URL:', redirectUrl);
+            
+            // Update button price before redirect (optional)
+            updateButtonPrice(selectedBundle.price);
+            
+            // Redirect to the determined URL
+            window.location.href = redirectUrl;
+        });
+    }
+});
+
+// Optional: Update button price when bundle selection changes
+document.addEventListener('change', function(e) {
+    if (e.target.matches('input[name="rapi-bundles-deal-9575227228508"]')) {
+        const selectedBundle = getSelectedBundle();
+        updateButtonPrice(selectedBundle.price);
+        
+        // Preview redirect URL in console
+        const redirectUrl = getRedirectUrl(selectedBundle);
+        console.log('Current selection would redirect to:', redirectUrl);
+        
+        // Optional: Update a preview element if it exists
+        const urlPreview = document.getElementById('bundleUrlPreview');
+        if (urlPreview) {
+            urlPreview.textContent = `Will redirect to: ${redirectUrl}`;
+        }
+    }
+});
+
+// Initialize button price on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const selectedBundle = getSelectedBundle();
+    updateButtonPrice(selectedBundle.price);
+});
   </script>
 </html>
