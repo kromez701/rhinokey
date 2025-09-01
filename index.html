@@ -34288,58 +34288,23 @@
   </script>
 
   <script>
-    // BLOCK ALL MODALS AND FORCE REDIRECT
-    function BLOCK_MODAL_AND_REDIRECT() {
-      const selectedBundle = getSelectedBundle();
-      const url = selectedBundle.url;
-
-      console.log("BLOCKING MODAL AND FORCING REDIRECT TO:", url);
-
-      // IMMEDIATELY block all modals
-      const modalSelectors = [
-        ".modal",
-        ".popup",
-        ".overlay",
-        ".lightbox",
-        ".dialog",
-        '[class*="modal"]',
-        '[class*="popup"]',
-        '[class*="overlay"]',
-        '[id*="modal"]',
-        '[id*="popup"]',
-        '[id*="overlay"]',
-        ".cart-drawer",
-        ".mini-cart",
-        ".side-cart",
-        ".cart-popup",
-      ];
-
-      modalSelectors.forEach((selector) => {
-        document.querySelectorAll(selector).forEach((modal) => {
-          modal.style.display = "none !important";
-          modal.style.visibility = "hidden !important";
-          modal.style.opacity = "0 !important";
-          modal.style.pointerEvents = "none !important";
-          modal.remove();
-        });
-      });
-
-      // Block common modal/popup JavaScript functions
-      window.showModal = () => {};
-      window.openModal = () => {};
-      window.openPopup = () => {};
-      window.showPopup = () => {};
-
-      // Stop all animations and transitions
-      document.querySelectorAll("*").forEach((el) => {
-        el.style.transition = "none !important";
-        el.style.animation = "none !important";
-      });
-
-      // Force redirect with multiple methods
-      <!-- setTimeout(() => (window.location.href = url), 1);
-      setTimeout(() => window.location.assign(url), 10); -->
-      window.location.href = url;
+    // Force redirect function - this will always work
+    function forceRedirect(url) {
+      // Multiple redirect methods to ensure it works
+      try {
+        window.location.href = url;
+      } catch (e) {
+        try {
+          window.location.assign(url);
+        } catch (e2) {
+          try {
+            window.location.replace(url);
+          } catch (e3) {
+            // Last resort
+            document.location = url;
+          }
+        }
+      }
     }
 
     // Function to get selected bundle variant
@@ -34348,20 +34313,21 @@
         'input[name="rapi-bundles-deal-9575227228508"]:checked'
       );
 
+      // Map bundle IDs to their details and redirect URLs
       const bundleMap = {
         "rapi-bundles-deal-0-9575227228508": {
           type: "1x-card",
-          price: "£39.00",
+          price: "£39",
           url: "https://example.com/checkout/single-card",
         },
         "rapi-bundles-deal-1-9575227228508": {
           type: "2x-cards",
-          price: "£59.00",
+          price: "£59",
           url: "https://example.com/checkout/double-cards",
         },
         "rapi-bundles-deal-2-9575227228508": {
           type: "4x-cards",
-          price: "£99.00",
+          price: "£99",
           url: "https://example.com/checkout/quad-cards",
         },
       };
@@ -34370,216 +34336,135 @@
         return bundleMap[selectedBundle.id];
       }
 
+      // Default to first option
       return bundleMap["rapi-bundles-deal-0-9575227228508"];
     }
 
-    // ULTIMATE MODAL BLOCKING SYSTEM
-    function initializeUltimateBlocker() {
-      console.log("Initializing ultimate modal blocker and redirect system...");
+    // Function to update button price
+    function updateButtonPrice(price) {
+      const priceDisplay = document.querySelector(".product-page-button-price");
+      if (priceDisplay) {
+        priceDisplay.textContent = ` - ${price}`;
+      }
+    }
 
-      // Override common modal/popup methods BEFORE they can be used
-      const originalAlert = window.alert;
-      const originalConfirm = window.confirm;
-      const originalPrompt = window.prompt;
+    // Main initialization function
+    function initializeRedirectHandler() {
+      // Try multiple button selectors to ensure we find it
+      const buttonSelectors = [
+        ".product-form__submit",
+        'button[type="submit"]',
+        'button[name="add"]',
+        ".button--primary",
+        ".product-form__buttons button",
+        ".temporary-button-variant-check",
+      ];
 
-      // Block these methods from being called
-      window.alert = () => {
-        BLOCK_MODAL_AND_REDIRECT();
-        return false;
-      };
-      window.confirm = () => {
-        BLOCK_MODAL_AND_REDIRECT();
-        return true;
-      };
-      window.prompt = () => {
-        BLOCK_MODAL_AND_REDIRECT();
-        return "";
-      };
+      let addToCartButton = null;
 
-      // Override addEventListener to block modal-related events
-      const originalAddEventListener = EventTarget.prototype.addEventListener;
-      EventTarget.prototype.addEventListener = function (
-        type,
-        listener,
-        options
-      ) {
-        // Block events that might trigger modals
-        const blockedEvents = [
-          "cart:added",
-          "product:added",
-          "modal:open",
-          "popup:open",
-          "drawer:open",
-        ];
-        if (blockedEvents.includes(type)) {
-          console.log("Blocked event listener for:", type);
-          return;
+      for (const selector of buttonSelectors) {
+        addToCartButton = document.querySelector(selector);
+        if (addToCartButton) {
+          console.log("Found button with selector:", selector);
+          break;
         }
-        return originalAddEventListener.call(this, type, listener, options);
-      };
+      }
 
-      // Find and override the button
-      const button = document.querySelector(
-        'button[type="submit"][name="add"].product-form__submit'
-      );
-
-      if (!button) {
-        setTimeout(initializeUltimateBlocker, 100);
+      if (!addToCartButton) {
+        console.log("Button not found, trying again in 500ms...");
+        setTimeout(initializeRedirectHandler, 500);
         return;
       }
 
-      console.log("Button found, applying ultimate override...");
+      // Remove any existing event listeners
+      const newButton = addToCartButton.cloneNode(true);
+      addToCartButton.parentNode.replaceChild(newButton, addToCartButton);
+      addToCartButton = newButton;
 
-      // COMPLETELY REPLACE THE BUTTON
-      const newButton = document.createElement("button");
-      newButton.type = "button"; // Change from submit to button
-      newButton.className = button.className;
-      newButton.innerHTML = button.innerHTML;
-
-      // Replace the original button
-      button.parentNode.replaceChild(newButton, button);
-
-      // Add our redirect handler
-      newButton.addEventListener(
+      // Add click event listener
+      addToCartButton.addEventListener(
         "click",
         function (e) {
-          console.log("ULTIMATE HANDLER TRIGGERED");
+          console.log("Add to cart button clicked!");
+
+          // Prevent ALL default behaviors
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
 
-          BLOCK_MODAL_AND_REDIRECT();
+          // Get selected bundle and redirect immediately
+          const selectedBundle = getSelectedBundle();
+          console.log("Selected bundle:", selectedBundle);
+
+          // FORCE REDIRECT IMMEDIATELY
+          forceRedirect(selectedBundle.url);
+
           return false;
         },
-        { capture: true, passive: false }
-      );
+        true
+      ); // Use capture phase
 
-      // Also override any direct onclick assignments
-      Object.defineProperty(newButton, "onclick", {
-        set: function () {
-          console.log("Blocked onclick assignment");
-        },
-        get: function () {
-          return function () {
-            BLOCK_MODAL_AND_REDIRECT();
-          };
-        },
-      });
-
-      // Block form submissions entirely
+      // Also handle any form submissions
       const forms = document.querySelectorAll("form");
       forms.forEach((form) => {
-        const newForm = form.cloneNode(true);
-        form.parentNode.replaceChild(newForm, form);
-
-        newForm.addEventListener(
+        form.addEventListener(
           "submit",
           function (e) {
             e.preventDefault();
             e.stopPropagation();
-            BLOCK_MODAL_AND_REDIRECT();
+
+            const selectedBundle = getSelectedBundle();
+            forceRedirect(selectedBundle.url);
+
             return false;
           },
-          { capture: true }
+          true
         );
-
-        // Remove the submit handler entirely
-        newForm.onsubmit = null;
       });
 
-      console.log("Ultimate modal blocker and redirect system activated!");
+      // Handle bundle selection changes
+      document.addEventListener("change", function (e) {
+        if (e.target.matches('input[name="rapi-bundles-deal-9575227228508"]')) {
+          const selectedBundle = getSelectedBundle();
+          updateButtonPrice(selectedBundle.price);
+          console.log("Bundle selection changed to:", selectedBundle);
+        }
+      });
+
+      // Set initial price
+      const initialBundle = getSelectedBundle();
+      updateButtonPrice(initialBundle.price);
+
+      console.log("Redirect handler initialized successfully");
     }
 
-    // GLOBAL EVENT BLOCKER - blocks everything that might trigger modals
-    document.addEventListener("DOMContentLoaded", function () {
-      // Block all AJAX requests that might add items to cart
-      const originalFetch = window.fetch;
-      const originalXHROpen = XMLHttpRequest.prototype.open;
-      const originalXHRSend = XMLHttpRequest.prototype.send;
+    // Initialize when DOM is ready
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initializeRedirectHandler);
+    } else {
+      initializeRedirectHandler();
+    }
 
-      // Override fetch to block cart-related requests
-      window.fetch = function (url, options) {
-        if (
-          url.includes("/cart/add") ||
-          url.includes("add-to-cart") ||
-          url.includes("/cart.js")
-        ) {
-          console.log("Blocked fetch request to:", url);
-          BLOCK_MODAL_AND_REDIRECT();
-          return Promise.resolve(new Response("{}"));
-        }
-        return originalFetch.apply(this, arguments);
-      };
+    // Backup initialization after a delay
+    setTimeout(initializeRedirectHandler, 1000);
 
-      // Override XMLHttpRequest
-      XMLHttpRequest.prototype.open = function (method, url) {
-        if (
-          url.includes("/cart/add") ||
-          url.includes("add-to-cart") ||
-          url.includes("/cart.js")
-        ) {
-          console.log("Blocked XHR request to:", url);
-          BLOCK_MODAL_AND_REDIRECT();
-          return;
-        }
-        return originalXHROpen.apply(this, arguments);
-      };
-    });
-
-    // ULTIMATE CLICK INTERCEPTOR - catches ANY click on the button area
+    // Emergency redirect - if button is clicked but nothing happens, force redirect
     document.addEventListener(
       "click",
       function (e) {
-        // Check if click is on or near the add to cart button
-        const isAddToCartClick =
-          e.target.closest('button[name="add"]') ||
-          e.target.closest(".product-form__submit") ||
-          e.target.closest(".pp-buy-button-container") ||
-          e.target.textContent.toLowerCase().includes("add to cart");
-
-        if (isAddToCartClick) {
-          console.log("ULTIMATE CLICK INTERCEPTOR ACTIVATED");
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-
-          // Block any modals immediately
-          setTimeout(BLOCK_MODAL_AND_REDIRECT, 1);
-          setTimeout(BLOCK_MODAL_AND_REDIRECT, 10);
-          setTimeout(BLOCK_MODAL_AND_REDIRECT, 50);
-
-          return false;
+        if (
+          e.target.closest(
+            '.product-form__submit, button[type="submit"], button[name="add"]'
+          )
+        ) {
+          console.log("Emergency redirect triggered");
+          setTimeout(function () {
+            const selectedBundle = getSelectedBundle();
+            forceRedirect(selectedBundle.url);
+          }, 50);
         }
       },
-      { capture: true, passive: false }
-    );
-
-    // Initialize the system
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initializeUltimateBlocker);
-    } else {
-      initializeUltimateBlocker();
-    }
-
-    // Multiple backup initializations
-    setTimeout(initializeUltimateBlocker, 100);
-    setTimeout(initializeUltimateBlocker, 500);
-    setTimeout(initializeUltimateBlocker, 1000);
-
-    // Continuously block modals
-    setInterval(function () {
-      // Remove any modals that might appear
-      document
-        .querySelectorAll(
-          '.modal, .popup, .overlay, [class*="modal"], [class*="popup"], .cart-drawer'
-        )
-        .forEach((modal) => {
-          modal.remove();
-        });
-    }, 100);
-
-    console.log(
-      "ULTIMATE MODAL BLOCKER LOADED - NO MODALS WILL APPEAR, ONLY REDIRECTS!"
+      true
     );
   </script>
 </html>
