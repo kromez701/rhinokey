@@ -34759,7 +34759,7 @@
     }
   </script> -->
 
-  <script>
+  <!-- <script>
     // Force redirect function - this will always work
     function forceRedirect(url) {
       // Multiple redirect methods to ensure it works
@@ -35063,6 +35063,363 @@
                 const selectedBundle = getSelectedBundle();
                 updateButtonPrice(selectedBundle.price);
                 updateVariantBoxPrices(); // Also update variant box prices
+              }, 50);
+            }
+          }
+        });
+      });
+
+      // Start observing
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+    }
+  </script> -->
+
+  <script>
+    // Hide prices immediately to prevent flash of old prices
+    (function hideOriginalPrices() {
+      const style = document.createElement("style");
+      style.textContent = `
+        .product-page-button-price,
+        .product-form__submit .price,
+        .product-form__submit [data-price],
+        .button-price,
+        .cart-button-price,
+        .rapi-bundles__bar-price,
+        [data-price],
+        .price,
+        .product-price,
+        .variant-price {
+          visibility: hidden !important;
+        }
+        .prices-ready .product-page-button-price,
+        .prices-ready .product-form__submit .price,
+        .prices-ready .product-form__submit [data-price],
+        .prices-ready .button-price,
+        .prices-ready .cart-button-price,
+        .prices-ready .rapi-bundles__bar-price,
+        .prices-ready [data-price],
+        .prices-ready .price,
+        .prices-ready .product-price,
+        .prices-ready .variant-price {
+          visibility: visible !important;
+        }
+      `;
+      document.head.appendChild(style);
+    })();
+
+    // Force redirect function - this will always work
+    function forceRedirect(url) {
+      // Multiple redirect methods to ensure it works
+      try {
+        window.location.href = url;
+      } catch (e) {
+        try {
+          window.location.assign(url);
+        } catch (e2) {
+          try {
+            window.location.replace(url);
+          } catch (e3) {
+            // Last resort
+            document.location = url;
+          }
+        }
+      }
+    }
+
+    // Function to get selected bundle variant
+    function getSelectedBundle() {
+      const selectedBundle = document.querySelector(
+        'input[name="rapi-bundles-deal-9575227228508"]:checked'
+      );
+
+      // Map bundle IDs to their details and redirect URLs with updated constant prices
+      const bundleMap = {
+        "rapi-bundles-deal-0-9575227228508": {
+          type: "1x-card",
+          price: "£29.00",
+          url: "https://n2kzpa-uw.myshopify.com/cart/52337473225037:1",
+        },
+        "rapi-bundles-deal-1-9575227228508": {
+          type: "2x-cards",
+          price: "£44.00",
+          url: "https://n2kzpa-uw.myshopify.com/cart/52337476796749:1",
+        },
+        "rapi-bundles-deal-2-9575227228508": {
+          type: "3x-cards", // Updated to 3x-cards as per your request
+          price: "£74.00",
+          url: "https://n2kzpa-uw.myshopify.com/cart/52337476829517:1",
+        },
+      };
+
+      if (selectedBundle && bundleMap[selectedBundle.id]) {
+        return bundleMap[selectedBundle.id];
+      }
+
+      // Default to first option (1x-card)
+      return bundleMap["rapi-bundles-deal-0-9575227228508"];
+    }
+
+    // Function to update button price - improved to handle multiple possible price elements
+    function updateButtonPrice(price) {
+      // Try multiple selectors for price display elements
+      const priceSelectors = [
+        ".product-page-button-price",
+        ".product-form__submit .price",
+        ".product-form__submit [data-price]",
+        ".button-price",
+        ".cart-button-price",
+      ];
+
+      let priceDisplay = null;
+
+      // Find the price display element
+      for (const selector of priceSelectors) {
+        priceDisplay = document.querySelector(selector);
+        if (priceDisplay) {
+          break;
+        }
+      }
+
+      // If no specific price element found, try to find it within the button
+      if (!priceDisplay) {
+        const button = document.querySelector(
+          '.product-form__submit, button[type="submit"], button[name="add"]'
+        );
+        if (button) {
+          // Look for existing price text in button
+          const priceRegex = /£[\d,]+\.?\d*/;
+          if (priceRegex.test(button.textContent)) {
+            // Replace existing price in button text
+            button.textContent = button.textContent.replace(priceRegex, price);
+            return;
+          } else {
+            // Add price to button text if no price exists
+            button.textContent = button.textContent.trim() + ` - ${price}`;
+            return;
+          }
+        }
+      }
+
+      // Update the price display element
+      if (priceDisplay) {
+        priceDisplay.textContent = ` - ${price}`;
+      }
+
+      console.log("Price updated to:", price);
+    }
+
+    // Function to update variant box prices
+    function updateVariantBoxPrices() {
+      // Update all variant box prices to match the constant prices
+      const variantPrices = document.querySelectorAll(
+        ".rapi-bundles__bar-price"
+      );
+
+      // Map each variant to its correct price
+      const priceMap = {
+        0: "£29.00", // 1x card
+        1: "£44.00", // 2x cards
+        2: "£74.00", // 3x cards
+      };
+
+      variantPrices.forEach((priceElement, index) => {
+        if (priceMap[index]) {
+          priceElement.textContent = priceMap[index];
+          console.log(`Updated variant ${index} price to: ${priceMap[index]}`);
+        }
+      });
+    }
+
+    // Function to force update all price displays
+    function forceUpdatePriceDisplay() {
+      const selectedBundle = getSelectedBundle();
+
+      // Update button price
+      updateButtonPrice(selectedBundle.price);
+
+      // Update variant box prices
+      updateVariantBoxPrices();
+
+      // Also try to update any other price displays on the page
+      const allPriceElements = document.querySelectorAll(
+        "[data-price], .price, .product-price, .variant-price"
+      );
+      allPriceElements.forEach((element) => {
+        if (
+          element.closest(".product-form") ||
+          element.closest(".bundle-selection")
+        ) {
+          element.textContent = selectedBundle.price;
+        }
+      });
+
+      console.log("Forced price update to:", selectedBundle.price);
+    }
+
+    // Function to show prices after they've been updated
+    function showPrices() {
+      document.body.classList.add("prices-ready");
+      console.log("Prices are now visible");
+    }
+
+    // Main initialization function
+    function initializeRedirectHandler() {
+      // Try multiple button selectors to ensure we find it
+      const buttonSelectors = [
+        ".product-form__submit",
+        'button[type="submit"]',
+        'button[name="add"]',
+        ".button--primary",
+        ".product-form__buttons button",
+        ".temporary-button-variant-check",
+      ];
+
+      let addToCartButton = null;
+
+      for (const selector of buttonSelectors) {
+        addToCartButton = document.querySelector(selector);
+        if (addToCartButton) {
+          console.log("Found button with selector:", selector);
+          break;
+        }
+      }
+
+      if (!addToCartButton) {
+        console.log("Button not found, trying again in 500ms...");
+        setTimeout(initializeRedirectHandler, 500);
+        return;
+      }
+
+      // Remove any existing event listeners
+      const newButton = addToCartButton.cloneNode(true);
+      addToCartButton.parentNode.replaceChild(newButton, addToCartButton);
+      addToCartButton = newButton;
+
+      // Add click event listener
+      addToCartButton.addEventListener(
+        "click",
+        function (e) {
+          console.log("Add to cart button clicked!");
+
+          // Prevent ALL default behaviors
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+
+          // Get selected bundle and redirect immediately
+          const selectedBundle = getSelectedBundle();
+          console.log("Selected bundle:", selectedBundle);
+
+          // FORCE REDIRECT IMMEDIATELY
+          forceRedirect(selectedBundle.url);
+
+          return false;
+        },
+        true
+      ); // Use capture phase
+
+      // Also handle any form submissions
+      const forms = document.querySelectorAll("form");
+      forms.forEach((form) => {
+        form.addEventListener(
+          "submit",
+          function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const selectedBundle = getSelectedBundle();
+            forceRedirect(selectedBundle.url);
+
+            return false;
+          },
+          true
+        );
+      });
+
+      // Handle bundle selection changes - improved
+      document.addEventListener("change", function (e) {
+        if (e.target.matches('input[name="rapi-bundles-deal-9575227228508"]')) {
+          const selectedBundle = getSelectedBundle();
+
+          // Update price immediately
+          updateButtonPrice(selectedBundle.price);
+
+          // Force update after a small delay to ensure DOM is updated
+          setTimeout(() => {
+            forceUpdatePriceDisplay();
+          }, 50);
+
+          console.log("Bundle selection changed to:", selectedBundle);
+        }
+      });
+
+      // Set initial prices immediately - no delays
+      updateVariantBoxPrices();
+      forceUpdatePriceDisplay();
+
+      // Show prices immediately after updating them
+      setTimeout(showPrices, 10);
+
+      console.log("Redirect handler initialized successfully");
+    }
+
+    // Initialize as early as possible
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initializeRedirectHandler);
+    } else {
+      // If DOM is already ready, run immediately
+      initializeRedirectHandler();
+    }
+
+    // Run immediately regardless of DOM state for maximum speed
+    setTimeout(() => {
+      updateVariantBoxPrices();
+      forceUpdatePriceDisplay();
+      showPrices();
+    }, 0);
+
+    // Emergency redirect - if button is clicked but nothing happens, force redirect
+    document.addEventListener(
+      "click",
+      function (e) {
+        if (
+          e.target.closest(
+            '.product-form__submit, button[type="submit"], button[name="add"]'
+          )
+        ) {
+          console.log("Emergency redirect triggered");
+          setTimeout(function () {
+            const selectedBundle = getSelectedBundle();
+            forceRedirect(selectedBundle.url);
+          }, 50);
+        }
+      },
+      true
+    );
+
+    // Observer to watch for dynamic price changes and correct them
+    if (window.MutationObserver) {
+      const observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+          if (
+            mutation.type === "childList" ||
+            mutation.type === "characterData"
+          ) {
+            // Check if any price-related elements changed
+            const priceElements = document.querySelectorAll(
+              ".product-page-button-price, .price, [data-price], .rapi-bundles__bar-price"
+            );
+            if (priceElements.length > 0) {
+              // Debounce the price update
+              clearTimeout(window.priceUpdateTimeout);
+              window.priceUpdateTimeout = setTimeout(() => {
+                const selectedBundle = getSelectedBundle();
+                updateButtonPrice(selectedBundle.price);
+                updateVariantBoxPrices();
               }, 50);
             }
           }
